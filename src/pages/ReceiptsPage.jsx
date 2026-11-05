@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Printer, Trash2, X } from 'lucide-react';
+import { Search, Plus, Printer, Trash2, X, Download, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { generateReceiptPdf } from '../utils/pdfGenerator.js';
 
 const ReceiptsPage = () => {
   const { apiFetch, user } = useAuth();
@@ -37,6 +38,35 @@ const ReceiptsPage = () => {
 
   // Printable Receipt Preview Modal State
   const [selectedReceiptForPrint, setSelectedReceiptForPrint] = useState(null);
+  const [printNotice, setPrintNotice] = useState('');
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+
+  // Client-side PDF Generation (Save as PDF)
+  const handleDownloadPdf = (rcp) => {
+    try {
+      setPdfGenerating(true);
+      generateReceiptPdf(rcp);
+      setPrintNotice(`Receipt ${rcp.receiptNumber} saved and downloaded as PDF file successfully!`);
+      setTimeout(() => setPrintNotice(''), 5000);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      setErrorMessage('Failed to generate PDF: ' + err.message);
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
+  // Safe Browser Print with IFrame Sandbox Error Handling
+  const handlePrint = (rcp) => {
+    try {
+      window.print();
+    } catch (err) {
+      console.warn('Browser print restricted in sandbox:', err);
+      // Automatically fallback to generating and downloading the official PDF document
+      handleDownloadPdf(rcp);
+      setPrintNotice('Browser print dialog is restricted in this embedded view. Your official 80G PDF receipt has been saved and downloaded automatically!');
+    }
+  };
 
   const fetchReceiptsAndDonations = async () => {
     setLoading(true);
@@ -401,11 +431,24 @@ const ReceiptsPage = () => {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
-                          onClick={() => setSelectedReceiptForPrint(rcp)}
+                          onClick={() => {
+                            setPrintNotice('');
+                            setSelectedReceiptForPrint(rcp);
+                          }}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg whitespace-nowrap"
+                          title="View / Print Certificate"
                         >
                           <Printer className="w-3.5 h-3.5" />
-                          <span>Certificate</span>
+                          <span>View / Print</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPdf(rcp)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg whitespace-nowrap"
+                          title="Save as PDF (.pdf)"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>PDF</span>
                         </button>
                         {canManage && (
                           <button
@@ -463,14 +506,14 @@ const ReceiptsPage = () => {
 
       {/* Printable 80G Certificate Modal */}
       {selectedReceiptForPrint && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-300 rounded-xl max-w-2xl w-full p-8 space-y-6">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 print-dialog-overlay">
+          <div className="bg-white border border-slate-300 rounded-xl max-w-2xl w-full p-8 space-y-6 print-certificate-card">
             <div className="flex items-start justify-between border-b border-slate-200 pb-4">
               <div>
                 <div className="text-xs font-semibold text-emerald-700">
                   SECTION 80G TAX EXEMPTION CERTIFICATE
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 mt-0.5">
+                <h2 className="text-xl font-bold text-slate-900 mt-0.5 font-display">
                   HopeBridge Charitable Foundation (NGO)
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -479,12 +522,24 @@ const ReceiptsPage = () => {
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedReceiptForPrint(null)}
+                onClick={() => {
+                  setSelectedReceiptForPrint(null);
+                  setPrintNotice('');
+                }}
                 className="p-1.5 text-slate-500 hover:text-slate-900 no-print"
+                title="Close Certificate"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Print notice / status feedback banner */}
+            {printNotice && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 rounded-lg font-medium flex items-center gap-2 no-print">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{printNotice}</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-lg border border-slate-200">
               <div>
@@ -543,21 +598,35 @@ const ReceiptsPage = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2 no-print">
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2 no-print">
               <button
                 type="button"
-                onClick={() => setSelectedReceiptForPrint(null)}
-                className="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 rounded-lg"
+                onClick={() => {
+                  setSelectedReceiptForPrint(null);
+                  setPrintNotice('');
+                }}
+                className="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
               >
                 Close
               </button>
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800"
+                onClick={() => handleDownloadPdf(selectedReceiptForPrint)}
+                disabled={pdfGenerating}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 rounded-lg transition-colors whitespace-nowrap shadow-xs"
+                title="Download verified PDF certificate file"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{pdfGenerating ? 'Generating PDF...' : 'Save as PDF (.pdf)'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePrint(selectedReceiptForPrint)}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors whitespace-nowrap shadow-xs"
+                title="Browser print preview"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Print / Save as PDF</span>
+                <span>Print Certificate</span>
               </button>
             </div>
           </div>

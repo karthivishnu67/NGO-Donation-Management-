@@ -26,4 +26,31 @@
   .no-print {
     display: none !important;
   }
+
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-dialog-overlay {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    box-shadow: none !important;
+  }
+
+  .print-certificate-card {
+    box-shadow: none !important;
+    border: 2px solid #0f172a !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    page-break-inside: avoid !important;
+    background: #ffffff !important;
+  }
 }

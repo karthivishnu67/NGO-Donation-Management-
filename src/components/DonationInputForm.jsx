@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { HeartHandshake, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
+import { HeartHandshake, CheckCircle2, AlertCircle, ArrowRight, Download } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { generateReceiptPdf } from '../utils/pdfGenerator.js';
 
 const DonationInputForm = ({ onDonationSuccess, defaultCause = '', preselectedCampaignId = null }) => {
   const { user, apiFetch } = useAuth();
@@ -26,6 +27,7 @@ const DonationInputForm = ({ onDonationSuccess, defaultCause = '', preselectedCa
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [recentTransaction, setRecentTransaction] = useState(null);
+  const [recentReceipt, setRecentReceipt] = useState(null);
 
   // Fetch live campaigns from backend to populate causes dropdown
   useEffect(() => {
@@ -124,6 +126,7 @@ const DonationInputForm = ({ onDonationSuccess, defaultCause = '', preselectedCa
         `Thank you! Donation of ₹${numericAmount.toLocaleString('en-IN')} for "${effectiveCause}" has been recorded successfully.`
       );
       setRecentTransaction(result.data);
+      setRecentReceipt(result.receipt || null);
 
       // Reset amount field while keeping donor name for quick re-use
       setAmount('');
@@ -189,6 +192,19 @@ const DonationInputForm = ({ onDonationSuccess, defaultCause = '', preselectedCa
                   <span>Date: <strong>{recentTransaction.donationDate}</strong></span>
                   <span>Status: <strong>{recentTransaction.status}</strong></span>
                   <span>Receipt: <strong>80G Auto-Generated</strong></span>
+                </div>
+              )}
+              {recentReceipt && (
+                <div className="mt-2.5 pt-2 border-t border-emerald-200/60">
+                  <button
+                    type="button"
+                    onClick={() => generateReceiptPdf(recentReceipt)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-emerald-800 border border-emerald-300 rounded-lg hover:bg-emerald-50 text-xs font-semibold shadow-xs"
+                    title="Download Section 80G Tax Exemption Receipt as PDF"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Download 80G Receipt (.pdf)</span>
+                  </button>
                 </div>
               )}
             </div>
