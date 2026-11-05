@@ -1,0 +1,6 @@
+{
+  "name": "NGO Donation Management System",
+  "description": "Full-stack MERN NGO Donation Management System with role-based access (Admin, Campaign Manager, Donor), fundraising campaigns, donor registry, online/offline donations, tax receipts, and progress reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
